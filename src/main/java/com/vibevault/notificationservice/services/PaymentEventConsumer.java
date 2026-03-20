@@ -20,6 +20,10 @@ public class PaymentEventConsumer {
             containerFactory = "paymentEventListenerContainerFactory"
     )
     public void handlePaymentEvent(PaymentEvent event) {
+        if (event.getEventType() == null) {
+            log.warn("Payment event with null eventType — skipping");
+            return;
+        }
         log.info("Received payment event: {} for order {}", event.getEventType(), event.getOrderId());
 
         switch (event.getEventType()) {
