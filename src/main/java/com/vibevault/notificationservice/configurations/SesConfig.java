@@ -27,6 +27,8 @@ public class SesConfig {
     @NotBlank(message = "notification.ses.region must be configured when SES is enabled")
     private String region;
 
+    private String toEmail;
+
     @Bean
     public SesClient sesClient() {
         return SesClient.builder()

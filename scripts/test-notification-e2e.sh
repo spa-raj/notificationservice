@@ -210,19 +210,44 @@ request GET "$NOTIFICATIONSERVICE/actuator/health"
 assert_status "notificationservice health" "200" "$STATUS"
 
 # --------------------------------------------------
-section "2. OAuth2 Token"
+section "2. Setup Test User + OAuth2 Token"
 # --------------------------------------------------
 
+# Get admin JJWT token to create user/role
+ADMIN_LOGIN_RESP=$(curl -s -X POST "$USERSERVICE/auth/login" \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASSWORD}\"}")
+ADMIN_JJWT=$(echo "$ADMIN_LOGIN_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])" 2>/dev/null || echo "")
+
+# Ensure CUSTOMER role exists
+if [ -n "$ADMIN_JJWT" ]; then
+    request POST "$USERSERVICE/roles/create" "$(printf 'Authorization: %s\nContent-Type: application/json' "$ADMIN_JJWT")" '{"roleName":"CUSTOMER","description":"Customer role"}'
+    echo -e "  ${GREEN}OK${NC} CUSTOMER role ready"
+fi
+
+# Use provided email or default to a test email
+NOTIFICATION_EMAIL="${NOTIFICATION_EMAIL:-sparshraj90@gmail.com}"
+NOTIFICATION_PASSWORD="Test@1234"
+NOTIFICATION_PHONE="91$(date +%s | tail -c 9)"
+
+# Create test user with real email
+request POST "$USERSERVICE/auth/signup" "Content-Type: application/json" \
+    "{\"email\":\"${NOTIFICATION_EMAIL}\",\"password\":\"${NOTIFICATION_PASSWORD}\",\"name\":\"Notification Test User\",\"phone\":\"${NOTIFICATION_PHONE}\",\"role\":\"CUSTOMER\"}"
+if [ "$STATUS" = "201" ] || [ "$STATUS" = "409" ] || [ "$STATUS" = "400" ]; then
+    echo -e "  ${GREEN}OK${NC} Test user ready (${NOTIFICATION_EMAIL})"
+fi
+
+# Get OAuth2 token for test user
 if [ -n "${TOKEN:-}" ]; then
     echo -e "  ${GREEN}PASS${NC} Using provided TOKEN"
     PASS=$((PASS + 1))
 else
-    echo "  Obtaining admin OAuth2 token..."
-    TOKEN=$(get_oauth2_token "$ADMIN_EMAIL" "$ADMIN_PASSWORD")
+    echo "  Obtaining OAuth2 token for ${NOTIFICATION_EMAIL}..."
+    TOKEN=$(get_oauth2_token "$NOTIFICATION_EMAIL" "$NOTIFICATION_PASSWORD")
 fi
 
 if [[ "$TOKEN" =~ ^eyJ.*\..*\..*$ ]]; then
-    echo -e "  ${GREEN}PASS${NC} Admin OAuth2 token obtained"
+    echo -e "  ${GREEN}PASS${NC} OAuth2 token obtained for ${NOTIFICATION_EMAIL}"
     PASS=$((PASS + 1))
     AUTH_HEADERS="$(printf 'Authorization: Bearer %s\nContent-Type: application/json' "$TOKEN")"
     AUTH_ONLY="Authorization: Bearer $TOKEN"
@@ -237,35 +262,40 @@ else
 fi
 
 # --------------------------------------------------
-section "3. Trigger Full Saga"
+section "3. Trigger Full Saga (as ${NOTIFICATION_EMAIL})"
 # --------------------------------------------------
+
+# Need admin token to create product
+echo "  Obtaining admin OAuth2 token for product creation..."
+ADMIN_TOKEN=$(get_oauth2_token "$ADMIN_EMAIL" "$ADMIN_PASSWORD")
+ADMIN_AUTH_HEADERS="$(printf 'Authorization: Bearer %s\nContent-Type: application/json' "$ADMIN_TOKEN")"
 
 TIMESTAMP=$(date +%s)
 PRODUCT_NAME="NotifTest-Product-${TIMESTAMP}"
 
-request POST "$PRODUCTSERVICE/categories" "$AUTH_HEADERS" '{"name":"Electronics","description":"Electronic devices"}'
+request POST "$PRODUCTSERVICE/categories" "$ADMIN_AUTH_HEADERS" '{"name":"Electronics","description":"Electronic devices"}'
 if [ "$STATUS" = "200" ] || [ "$STATUS" = "409" ]; then
     echo -e "  ${GREEN}OK${NC} Category ready"
 fi
 
-request POST "$PRODUCTSERVICE/products" "$AUTH_HEADERS" \
+request POST "$PRODUCTSERVICE/products" "$ADMIN_AUTH_HEADERS" \
     "{\"name\":\"${PRODUCT_NAME}\",\"description\":\"Test product for notification\",\"price\":299.99,\"currency\":\"INR\",\"categoryName\":\"Electronics\"}"
 assert_status "Create test product" "200" "$STATUS"
 PRODUCT_ID=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])" 2>/dev/null || echo "")
 echo -e "  ${CYAN}Product ID: ${PRODUCT_ID}${NC}"
 
-# Clear cart
+# Clear cart (as test user)
 curl -s -X DELETE "$CARTSERVICE/cart" -H "$AUTH_ONLY" > /dev/null 2>&1
 echo -e "  ${GREEN}OK${NC} Cart cleared"
 
-# Add to cart
+# Add to cart (as test user — userId = NOTIFICATION_EMAIL)
 request POST "$CARTSERVICE/cart/items" "$AUTH_HEADERS" \
     "{\"productId\":\"${PRODUCT_ID}\",\"quantity\":1}"
 assert_status "Add to cart" "201" "$STATUS"
 
-# Checkout → triggers ORDER_CREATED → PAYMENT_LINK → notifications
+# Checkout → triggers ORDER_CREATED → PAYMENT_LINK → notifications to NOTIFICATION_EMAIL
 request POST "$CARTSERVICE/cart/checkout" "$AUTH_ONLY"
-assert_status "Checkout (triggers saga)" "200" "$STATUS"
+assert_status "Checkout (triggers saga as ${NOTIFICATION_EMAIL})" "200" "$STATUS"
 
 echo -e "  ${CYAN}Waiting for saga: cart → order → payment → notifications...${NC}"
 sleep 10

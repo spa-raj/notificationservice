@@ -13,8 +13,10 @@ services:
       SES_ENABLED: ${SES_ENABLED:-false}
       SES_FROM_EMAIL: ${SES_FROM_EMAIL:-}
       SES_REGION: ${SES_REGION:-ap-south-1}
+      SES_TO_EMAIL: ${SES_TO_EMAIL:-}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
       JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
     ports:
       - "8085:8085"
