@@ -19,11 +19,14 @@ public class SesNotificationSender implements NotificationSender {
 
     @Override
     public void send(String to, String subject, String body) {
+        // In SES sandbox, override recipient to verified email if configured
+        String recipient = (sesConfig.getToEmail() != null && !sesConfig.getToEmail().isBlank())
+                ? sesConfig.getToEmail() : to;
         try {
             SendEmailRequest request = SendEmailRequest.builder()
                     .source(sesConfig.getFromEmail())
                     .destination(Destination.builder()
-                            .toAddresses(to)
+                            .toAddresses(recipient)
                             .build())
                     .message(Message.builder()
                             .subject(Content.builder().data(subject).charset("UTF-8").build())
@@ -34,7 +37,7 @@ public class SesNotificationSender implements NotificationSender {
                     .build();
 
             sesClient.sendEmail(request);
-            log.info("SES email sent to {} — subject: {}", to, subject);
+            log.info("SES email sent to {} — subject: {}", recipient, subject);
         } catch (SesException e) {
             String awsMessage = e.awsErrorDetails() != null ? e.awsErrorDetails().errorMessage() : e.getMessage();
             log.error("Failed to send SES email to {}: {}", to, awsMessage, e);
