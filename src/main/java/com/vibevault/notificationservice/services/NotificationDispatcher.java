@@ -36,7 +36,7 @@ public class NotificationDispatcher {
 
     public void notifyPaymentConfirmed(String userId, UUID orderId, BigDecimal amount) {
         String subject = "Payment Successful - Order " + orderId;
-        String body = String.format("Payment of INR %s for order %s has been confirmed.", amount, orderId);
+        String body = String.format("Payment of %s for order %s has been confirmed.", amount, orderId);
         dispatch(userId, subject, body);
     }
 
@@ -51,7 +51,7 @@ public class NotificationDispatcher {
             try {
                 sender.send(to, subject, body);
             } catch (Exception e) {
-                log.error("Failed to send notification via {}: {}", sender.getClass().getSimpleName(), e.getMessage());
+                log.error("Failed to send notification via {}", sender.getClass().getSimpleName(), e);
             }
         }
     }
