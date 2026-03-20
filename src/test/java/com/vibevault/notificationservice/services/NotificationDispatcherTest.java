@@ -2,7 +2,6 @@ package com.vibevault.notificationservice.services;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -23,13 +22,6 @@ class NotificationDispatcherTest {
 
     @Mock
     private NotificationSender sender2;
-
-    @InjectMocks
-    private NotificationDispatcher dispatcher;
-
-    NotificationDispatcherTest() {
-        // InjectMocks needs List<NotificationSender> — set up manually
-    }
 
     private NotificationDispatcher createDispatcher() {
         return new NotificationDispatcher(List.of(sender1, sender2));
