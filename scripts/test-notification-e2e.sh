@@ -402,7 +402,7 @@ if [ -n "$PAYMENT_LINK" ]; then
 
         # Verify PAYMENT_CONFIRMED notification in logs
         sleep 3
-        NOTIF_LOGS_AFTER=$(docker logs "$NOTIF_CONTAINER" 2>&1 | tail -50)
+        NOTIF_LOGS_AFTER=$(docker logs "$NOTIF_CONTAINER" 2>&1 | tail -200)
 
         if echo "$NOTIF_LOGS_AFTER" | grep -q "Payment Successful"; then
             echo -e "  ${GREEN}PASS${NC} PAYMENT_CONFIRMED notification logged"
