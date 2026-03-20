@@ -20,6 +20,10 @@ public class OrderEventConsumer {
             containerFactory = "orderEventListenerContainerFactory"
     )
     public void handleOrderEvent(OrderEvent event) {
+        if (event.getEventType() == null) {
+            log.warn("Order event with null eventType — skipping");
+            return;
+        }
         log.info("Received order event: {} for order {}", event.getEventType(), event.getOrderId());
 
         switch (event.getEventType()) {
