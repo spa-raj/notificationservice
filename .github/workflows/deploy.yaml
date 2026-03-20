@@ -76,7 +76,7 @@ jobs:
       - name: Configure kubectl
         run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
 
-      - name: Attach SES policy to EKS node role
+      - name: Attach SES policy to EKS node role + fix IMDS hop limit
         run: |
           NODE_ROLE=$(aws eks describe-nodegroup \
             --cluster-name ${{ env.EKS_CLUSTER_NAME }} \
@@ -84,6 +84,15 @@ jobs:
             --query "nodegroup.nodeRole" --output text | awk -F'/' '{print $NF}')
           aws iam attach-role-policy --role-name "$NODE_ROLE" --policy-arn arn:aws:iam::aws:policy/AmazonSESFullAccess || true
           echo "SES policy attached to node role: $NODE_ROLE"
+
+          # EKS defaults IMDS hop limit to 1 — pods need 2 to access node IAM credentials
+          INSTANCES=$(kubectl get nodes -o jsonpath='{.items[*].spec.providerID}' | tr ' ' '\n' | awk -F'/' '{print $NF}')
+          for INSTANCE_ID in $INSTANCES; do
+            aws ec2 modify-instance-metadata-options \
+              --instance-id "$INSTANCE_ID" \
+              --http-put-response-hop-limit 2 || true
+            echo "IMDS hop limit updated for $INSTANCE_ID"
+          done
 
       - name: Deploy with Helm
         run: |
