@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "notificationservice.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "notificationservice.labels" . | nindent 4 }}
+data:
+  PORT: "{{ .Values.containerPort }}"
+  {{- if .Values.config.kafkaBootstrapServers }}
+  KAFKA_BOOTSTRAP_SERVERS: {{ .Values.config.kafkaBootstrapServers | quote }}
+  {{- end }}
+  SES_ENABLED: {{ .Values.config.sesEnabled | quote }}
+  SES_FROM_EMAIL: {{ .Values.config.sesFromEmail | quote }}
+  SES_TO_EMAIL: {{ .Values.config.sesToEmail | quote }}
+  SES_REGION: {{ .Values.config.sesRegion | quote }}
