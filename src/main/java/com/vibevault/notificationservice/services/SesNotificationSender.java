@@ -36,7 +36,8 @@ public class SesNotificationSender implements NotificationSender {
             sesClient.sendEmail(request);
             log.info("SES email sent to {} — subject: {}", to, subject);
         } catch (SesException e) {
-            log.error("Failed to send SES email to {}: {}", to, e.awsErrorDetails().errorMessage());
+            String awsMessage = e.awsErrorDetails() != null ? e.awsErrorDetails().errorMessage() : e.getMessage();
+            log.error("Failed to send SES email to {}: {}", to, awsMessage, e);
         }
     }
 }
