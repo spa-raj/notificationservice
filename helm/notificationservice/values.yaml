@@ -1,0 +1,33 @@
+replicaCount: 1
+
+image:
+  repository: notificationservice
+  tag: latest
+  pullPolicy: Always
+
+containerPort: 8085
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 768Mi
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+config:
+  kafkaBootstrapServers: ""
+  sesEnabled: "false"
+  sesFromEmail: ""
+  sesToEmail: ""
+  sesRegion: "ap-south-1"
