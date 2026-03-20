@@ -1,0 +1,32 @@
+services:
+  # Notification Service Application
+  # Stateless Kafka consumer — no database needed
+  # Uses Kafka from cartservice via vibevault-network (alias: kafka)
+  notificationservice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notificationservice-app
+    environment:
+      PORT: 8085
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SES_ENABLED: ${SES_ENABLED:-false}
+      SES_FROM_EMAIL: ${SES_FROM_EMAIL:-}
+      SES_REGION: ${SES_REGION:-ap-south-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+    ports:
+      - "8085:8085"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    networks:
+      - vibevault-network
+
+networks:
+  vibevault-network:
+    external: true
