@@ -49,6 +49,17 @@ payment-events topic ──→ PaymentEventConsumer ──→ NotificationDispat
 - `NotificationDispatcher` injects `List<NotificationSender>` — dispatches to all active senders
 - If one sender fails, others still execute (fault isolation)
 
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `8085` | Server port |
+| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka broker address |
+| `SES_ENABLED` | `false` | Enable AWS SES email sender |
+| `SES_FROM_EMAIL` | — | Verified sender email address |
+| `SES_REGION` | `ap-south-1` | AWS SES region |
+| `SES_TO_EMAIL` | — | Override recipient (for SES sandbox testing) |
+
 ## Local Development
 
 ### Prerequisites
